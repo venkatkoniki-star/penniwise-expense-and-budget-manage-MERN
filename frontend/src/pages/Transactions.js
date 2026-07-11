@@ -34,40 +34,54 @@ const Transactions = () => {
     load();
   };
 
-  const handleEdit = (t) => {
-    setEditing(t);
-    setShowModal(true);
-  };
+  const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + parseFloat(t.amount), 0);
+  const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + parseFloat(t.amount), 0);
 
   return (
     <Layout>
       <div className="page-header">
         <div>
           <div className="page-title">Transactions</div>
-          <div className="page-subtitle">All your income and expenses in one place</div>
+          <div className="page-subtitle">Every entry, all in one place</div>
         </div>
         <button className="btn btn-primary" onClick={() => { setEditing(null); setShowModal(true); }}>
-          <Plus size={16} /> Add transaction
+          <Plus size={15} /> Add transaction
         </button>
       </div>
 
+      {transactions.length > 0 && (
+        <div style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
+          <div style={{ padding: '10px 16px', background: 'var(--green-light)', borderRadius: 8, border: '1px solid #b7e4cc' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--green)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total income</span>
+            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--green)', letterSpacing: '-0.02em' }}>${totalIncome.toFixed(2)}</div>
+          </div>
+          <div style={{ padding: '10px 16px', background: 'var(--red-light)', borderRadius: 8, border: '1px solid #fca5a5' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--red)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total expenses</span>
+            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--red)', letterSpacing: '-0.02em' }}>${totalExpense.toFixed(2)}</div>
+          </div>
+        </div>
+      )}
+
       <div className="filters-bar">
-        <select value={filters.type} onChange={(e) => setFilters({ ...filters, type: e.target.value })}>
+        <select value={filters.type} onChange={e => setFilters({ ...filters, type: e.target.value })}>
           <option value="">All types</option>
           <option value="income">Income</option>
           <option value="expense">Expense</option>
         </select>
-        <select value={filters.category_id} onChange={(e) => setFilters({ ...filters, category_id: e.target.value })}>
+        <select value={filters.category_id} onChange={e => setFilters({ ...filters, category_id: e.target.value })}>
           <option value="">All categories</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
+        {(filters.type || filters.category_id) && (
+          <button className="btn btn-secondary btn-sm" onClick={() => setFilters({ type: '', category_id: '' })}>Clear</button>
+        )}
       </div>
 
       <div className="card">
         {loading ? (
-          <div className="loading">Loading transactions...</div>
+          <div className="loading">Loading...</div>
         ) : transactions.length === 0 ? (
-          <div className="empty-state"><p>No transactions found. Add your first one to get started.</p></div>
+          <div className="empty-state"><p>No transactions found. Add your first one.</p></div>
         ) : (
           <div className="table-wrapper">
             <table>
@@ -84,12 +98,14 @@ const Transactions = () => {
               <tbody>
                 {transactions.map(t => (
                   <tr key={t.id}>
-                    <td>{new Date(t.date).toLocaleDateString()}</td>
-                    <td>{t.description || '—'}</td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                      {new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </td>
+                    <td style={{ fontWeight: 500 }}>{t.description || '—'}</td>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span className="cat-dot" style={{ background: t.category_color || '#6B7280' }} />
-                        {t.category_name || 'Uncategorized'}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        <span className="cat-dot" style={{ background: t.category_color || '#9B9A94' }} />
+                        <span style={{ color: 'var(--text-secondary)' }}>{t.category_name || 'Uncategorized'}</span>
                       </div>
                     </td>
                     <td>
@@ -101,12 +117,12 @@ const Transactions = () => {
                       {t.type === 'income' ? '+' : '-'}${parseFloat(t.amount).toFixed(2)}
                     </td>
                     <td>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button className="btn btn-secondary btn-icon" onClick={() => handleEdit(t)}>
-                          <Pencil size={14} />
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button className="btn btn-secondary btn-icon btn-sm" onClick={() => { setEditing(t); setShowModal(true); }}>
+                          <Pencil size={13} />
                         </button>
-                        <button className="btn btn-danger btn-icon" onClick={() => handleDelete(t.id)}>
-                          <Trash2 size={14} />
+                        <button className="btn btn-danger btn-icon btn-sm" onClick={() => handleDelete(t.id)}>
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     </td>

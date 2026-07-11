@@ -1,18 +1,13 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import {
-  LayoutDashboard, ArrowLeftRight, PiggyBank, FileBarChart, LogOut, Wallet,
-} from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, PiggyBank, FileBarChart, LogOut, Wallet } from 'lucide-react';
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const handleLogout = () => { logout(); navigate('/login'); };
 
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
@@ -23,7 +18,7 @@ const Layout = ({ children }) => {
       <aside className="sidebar">
         <div className="sidebar-logo">
           <div className="logo-icon">
-            <Wallet size={18} color="#fff" />
+            <Wallet size={15} color="#fff" />
           </div>
           <div>
             <div className="logo-text">Pennywise</div>
@@ -32,18 +27,18 @@ const Layout = ({ children }) => {
         </div>
 
         <nav className="sidebar-nav">
-          <div className="nav-label">Menu</div>
+          <div className="nav-label">Navigation</div>
           <NavLink to="/" end className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            <LayoutDashboard className="nav-icon" /> Dashboard
+            <LayoutDashboard className="nav-icon" size={16} /> Dashboard
           </NavLink>
           <NavLink to="/transactions" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            <ArrowLeftRight className="nav-icon" /> Transactions
+            <ArrowLeftRight className="nav-icon" size={16} /> Transactions
           </NavLink>
           <NavLink to="/budgets" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            <PiggyBank className="nav-icon" /> Budgets
+            <PiggyBank className="nav-icon" size={16} /> Budgets
           </NavLink>
           <NavLink to="/reports" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            <FileBarChart className="nav-icon" /> Monthly Report
+            <FileBarChart className="nav-icon" size={16} /> Monthly Report
           </NavLink>
         </nav>
 
@@ -56,7 +51,7 @@ const Layout = ({ children }) => {
             </div>
           </div>
           <button className="logout-btn" onClick={handleLogout}>
-            <LogOut size={14} /> Log out
+            <LogOut size={13} /> Log out
           </button>
         </div>
       </aside>
