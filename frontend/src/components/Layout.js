@@ -1,17 +1,20 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import { LayoutDashboard, ArrowLeftRight, PiggyBank, FileBarChart, LogOut, Wallet } from 'lucide-react';
 
 const Layout = ({ children }) => {
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem('user')) || {};
 
-  const handleLogout = () => { logout(); navigate('/login'); };
-
-  const initials = user?.name
+  const initials = user.name
     ? user.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
     : '?';
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
 
   return (
     <div className="app-shell">
@@ -46,8 +49,8 @@ const Layout = ({ children }) => {
           <div className="user-card">
             <div className="user-avatar">{initials}</div>
             <div>
-              <div className="user-name">{user?.name}</div>
-              <div className="user-email">{user?.email}</div>
+              <div className="user-name">{user.name}</div>
+              <div className="user-email">{user.email}</div>
             </div>
           </div>
           <button className="logout-btn" onClick={handleLogout}>

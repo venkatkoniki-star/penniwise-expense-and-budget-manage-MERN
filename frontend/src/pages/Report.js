@@ -1,25 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
-} from 'recharts';
-import api from '../utils/api';
+import React, { useState, useEffect } from 'react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
+import axios from 'axios';
 import Layout from '../components/Layout';
 import MonthPicker from '../components/MonthPicker';
 
+const API = process.env.REACT_APP_API_URL;
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', fontSize: '0.8rem', boxShadow: 'var(--shadow)' }}>
-      <div style={{ fontWeight: 600, marginBottom: 6, color: 'var(--text-primary)' }}>{label}</div>
-      {payload.map((p, i) => (
-        <div key={i} style={{ color: p.color, fontWeight: 500 }}>{p.name}: ${p.value?.toFixed(2)}</div>
-      ))}
-    </div>
-  );
-};
 
 const Report = () => {
   const now = new Date();
@@ -28,34 +14,56 @@ const Report = () => {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const res = await api.get('/reports/monthly', { params: { month, year } });
-    setReport(res.data);
-    setLoading(false);
+  const token = localStorage.getItem('token');
+
+  useEffect(() => {
+    loadReport();
   }, [month, year]);
 
-  useEffect(() => { load(); }, [load]);
+  const loadReport = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/reports/monthly?month=${month}&year=${year}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setReport(res.data);
+    } catch (err) {
+      console.log(err);
+    }
+    setLoading(false);
+  };
 
-  if (loading || !report) return <Layout><div className="loading">Loading report...</div></Layout>;
+  const handleMonthChange = (m, y) => {
+    setMonth(m);
+    setYear(y);
+  };
 
-  const income = parseFloat(report.summary.total_income || 0);
-  const expenses = parseFloat(report.summary.total_expenses || 0);
+  if (loading) return <Layout><div className="loading">Loading report...</div></Layout>;
+  if (!report) return <Layout><div className="loading">Something went wrong.</div></Layout>;
+
+  const income = parseFloat(report.summary.total_income) || 0;
+  const expenses = parseFloat(report.summary.total_expenses) || 0;
   const balance = income - expenses;
   const savingsRate = income > 0 ? ((balance / income) * 100).toFixed(1) : 0;
   const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
 
-  const pieData = report.byCategory.map(c => ({
-    name: c.category || 'Uncategorized',
-    value: parseFloat(c.total),
-    color: c.color || '#9B9A94',
-  }));
+  const pieData = [];
+  for (let i = 0; i < report.byCategory.length; i++) {
+    pieData.push({
+      name: report.byCategory[i].category || 'Uncategorized',
+      value: parseFloat(report.byCategory[i].total),
+      color: report.byCategory[i].color || '#9B9A94'
+    });
+  }
 
-  const trendData = report.trend.map(t => ({
-    name: MONTH_SHORT[t.month - 1],
-    Income: parseFloat(t.income),
-    Expenses: parseFloat(t.expenses),
-  }));
+  const trendData = [];
+  for (let i = 0; i < report.trend.length; i++) {
+    trendData.push({
+      name: MONTH_SHORT[report.trend[i].month - 1],
+      Income: parseFloat(report.trend[i].income),
+      Expenses: parseFloat(report.trend[i].expenses)
+    });
+  }
 
   return (
     <Layout>
@@ -64,7 +72,7 @@ const Report = () => {
           <div className="page-title">Monthly Report</div>
           <div className="page-subtitle">{monthName} {year} — full summary</div>
         </div>
-        <MonthPicker month={month} year={year} onChange={(m, y) => { setMonth(m); setYear(y); }} />
+        <MonthPicker month={month} year={year} onChange={handleMonthChange} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 22 }}>
@@ -82,7 +90,7 @@ const Report = () => {
         </div>
         <div className="stat-card">
           <div className="stat-label">Savings rate</div>
-          <div className="stat-value" style={{ color: parseFloat(savingsRate) >= 20 ? 'var(--green)' : 'var(--text-primary)' }}>{savingsRate}%</div>
+          <div className="stat-value">{savingsRate}%</div>
         </div>
       </div>
 
@@ -95,9 +103,11 @@ const Report = () => {
             <ResponsiveContainer width="100%" height={240}>
               <PieChart>
                 <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={2}>
-                  {pieData.map((entry, idx) => <Cell key={idx} fill={entry.color} />)}
+                  {pieData.map((entry, idx) => (
+                    <Cell key={idx} fill={entry.color} />
+                  ))}
                 </Pie>
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
                 <Legend wrapperStyle={{ fontSize: '0.75rem' }} />
               </PieChart>
             </ResponsiveContainer>
@@ -109,9 +119,9 @@ const Report = () => {
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={trendData} barSize={16}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-              <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+              <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
               <Legend wrapperStyle={{ fontSize: '0.75rem' }} />
               <Bar dataKey="Income" fill="var(--green)" radius={[3, 3, 0, 0]} />
               <Bar dataKey="Expenses" fill="var(--red)" radius={[3, 3, 0, 0]} />
@@ -123,13 +133,13 @@ const Report = () => {
       {report.budgetComparison.length > 0 && (
         <div className="card" style={{ marginBottom: 18 }}>
           <div className="card-title">Budget vs actual</div>
-          {report.budgetComparison.map(b => {
+          {report.budgetComparison.map((b, i) => {
             const spent = parseFloat(b.spent);
             const limit = parseFloat(b.budgeted);
             const pct = Math.min((spent / limit) * 100, 100);
             const over = spent > limit;
             return (
-              <div className="category-row" key={b.name}>
+              <div className="category-row" key={i}>
                 <span className="cat-dot" style={{ background: b.color || 'var(--accent)' }} />
                 <div className="category-row-info">
                   <div className="category-row-name">
@@ -174,16 +184,7 @@ const Report = () => {
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{c.count}</td>
                     <td className="amount-expense">${parseFloat(c.total).toFixed(2)}</td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ flex: 1, height: 5, background: 'var(--border)', borderRadius: 10, maxWidth: 80 }}>
-                          <div style={{ height: '100%', borderRadius: 10, background: c.color || 'var(--accent)', width: `${expenses > 0 ? (parseFloat(c.total) / expenses) * 100 : 0}%` }} />
-                        </div>
-                        <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                          {expenses > 0 ? ((parseFloat(c.total) / expenses) * 100).toFixed(1) : 0}%
-                        </span>
-                      </div>
-                    </td>
+                    <td>{expenses > 0 ? ((parseFloat(c.total) / expenses) * 100).toFixed(1) : 0}%</td>
                   </tr>
                 ))}
               </tbody>

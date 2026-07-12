@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
-import api from '../utils/api';
+import axios from 'axios';
 import Layout from '../components/Layout';
 import TransactionModal from '../components/TransactionModal';
+
+const API = process.env.REACT_APP_API_URL;
 
 const Transactions = () => {
   const [transactions, setTransactions] = useState([]);
@@ -10,32 +12,76 @@ const Transactions = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [filters, setFilters] = useState({ type: '', category_id: '' });
+  const [typeFilter, setTypeFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
 
-  const load = useCallback(async () => {
+  const token = localStorage.getItem('token');
+
+  useEffect(() => {
+    loadTransactions();
+    loadCategories();
+  }, []);
+
+  const loadTransactions = async () => {
     setLoading(true);
-    const params = {};
-    if (filters.type) params.type = filters.type;
-    if (filters.category_id) params.category_id = filters.category_id;
-    const [txRes, catRes] = await Promise.all([
-      api.get('/transactions', { params: { ...params, limit: 100 } }),
-      api.get('/categories'),
-    ]);
-    setTransactions(txRes.data);
-    setCategories(catRes.data);
-    setLoading(false);
-  }, [filters]);
+    try {
+      let url = `${API}/transactions?limit=100`;
+      if (typeFilter) url = url + '&type=' + typeFilter;
+      if (categoryFilter) url = url + '&category_id=' + categoryFilter;
 
-  useEffect(() => { load(); }, [load]);
+      const res = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setTransactions(res.data);
+    } catch (err) {
+      console.log(err);
+    }
+    setLoading(false);
+  };
+
+  const loadCategories = async () => {
+    try {
+      const res = await axios.get(`${API}/categories`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCategories(res.data);
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this transaction?')) return;
-    await api.delete(`/transactions/${id}`);
-    load();
+    try {
+      await axios.delete(`${API}/transactions/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      loadTransactions();
+    } catch (err) {
+      console.log(err);
+    }
   };
 
-  const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + parseFloat(t.amount), 0);
-  const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + parseFloat(t.amount), 0);
+  const handleFilter = () => {
+    loadTransactions();
+  };
+
+  const handleClear = () => {
+    setTypeFilter('');
+    setCategoryFilter('');
+    loadTransactions();
+  };
+
+  let totalIncome = 0;
+  let totalExpense = 0;
+
+  for (let i = 0; i < transactions.length; i++) {
+    if (transactions[i].type === 'income') {
+      totalIncome = totalIncome + parseFloat(transactions[i].amount);
+    } else {
+      totalExpense = totalExpense + parseFloat(transactions[i].amount);
+    }
+  }
 
   return (
     <Layout>
@@ -52,36 +98,37 @@ const Transactions = () => {
       {transactions.length > 0 && (
         <div style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
           <div style={{ padding: '10px 16px', background: 'var(--green-light)', borderRadius: 8, border: '1px solid #b7e4cc' }}>
-            <span style={{ fontSize: '0.7rem', color: 'var(--green)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total income</span>
-            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--green)', letterSpacing: '-0.02em' }}>${totalIncome.toFixed(2)}</div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--green)', fontWeight: 600, textTransform: 'uppercase' }}>Total income</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--green)' }}>${totalIncome.toFixed(2)}</div>
           </div>
           <div style={{ padding: '10px 16px', background: 'var(--red-light)', borderRadius: 8, border: '1px solid #fca5a5' }}>
-            <span style={{ fontSize: '0.7rem', color: 'var(--red)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total expenses</span>
-            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--red)', letterSpacing: '-0.02em' }}>${totalExpense.toFixed(2)}</div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--red)', fontWeight: 600, textTransform: 'uppercase' }}>Total expenses</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--red)' }}>${totalExpense.toFixed(2)}</div>
           </div>
         </div>
       )}
 
       <div className="filters-bar">
-        <select value={filters.type} onChange={e => setFilters({ ...filters, type: e.target.value })}>
+        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
           <option value="">All types</option>
           <option value="income">Income</option>
           <option value="expense">Expense</option>
         </select>
-        <select value={filters.category_id} onChange={e => setFilters({ ...filters, category_id: e.target.value })}>
+        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
           <option value="">All categories</option>
-          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          {categories.map(c => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
         </select>
-        {(filters.type || filters.category_id) && (
-          <button className="btn btn-secondary btn-sm" onClick={() => setFilters({ type: '', category_id: '' })}>Clear</button>
-        )}
+        <button className="btn btn-primary btn-sm" onClick={handleFilter}>Filter</button>
+        <button className="btn btn-secondary btn-sm" onClick={handleClear}>Clear</button>
       </div>
 
       <div className="card">
         {loading ? (
           <div className="loading">Loading...</div>
         ) : transactions.length === 0 ? (
-          <div className="empty-state"><p>No transactions found. Add your first one.</p></div>
+          <div className="empty-state"><p>No transactions found.</p></div>
         ) : (
           <div className="table-wrapper">
             <table>
@@ -99,13 +146,13 @@ const Transactions = () => {
                 {transactions.map(t => (
                   <tr key={t.id}>
                     <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                      {new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {new Date(t.date).toLocaleDateString()}
                     </td>
                     <td style={{ fontWeight: 500 }}>{t.description || '—'}</td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                         <span className="cat-dot" style={{ background: t.category_color || '#9B9A94' }} />
-                        <span style={{ color: 'var(--text-secondary)' }}>{t.category_name || 'Uncategorized'}</span>
+                        {t.category_name || 'Uncategorized'}
                       </div>
                     </td>
                     <td>
@@ -138,7 +185,7 @@ const Transactions = () => {
         <TransactionModal
           editing={editing}
           onClose={() => { setShowModal(false); setEditing(null); }}
-          onSaved={() => { setShowModal(false); setEditing(null); load(); }}
+          onSaved={() => { setShowModal(false); setEditing(null); loadTransactions(); }}
         />
       )}
     </Layout>

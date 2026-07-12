@@ -1,33 +1,42 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, TrendingUp, ShieldCheck, PieChart } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import axios from 'axios';
+
+const API = process.env.REACT_APP_API_URL;
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
+
     try {
-      await login(email, password);
+      const res = await axios.post(`${API}/auth/login`, {
+        email: email,
+        password: password
+      });
+
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
-    } finally {
-      setLoading(false);
+      console.log(err);
+      setError(err.response?.data?.message || 'Login failed. Please try again.');
     }
+
+    setLoading(false);
   };
 
   return (
     <div className="auth-split-page">
-      {/* ── Left panel ── */}
       <div className="auth-split-left">
         <div className="auth-split-brand">
           <div className="auth-brand-icon">
@@ -50,15 +59,14 @@ const Login = () => {
           </div>
           <div className="auth-feature-item">
             <div className="auth-feature-icon"><PieChart size={16} /></div>
-            <span>Monthly reports &amp; breakdowns</span>
+            <span>Monthly reports & breakdowns</span>
           </div>
           <div className="auth-feature-item">
             <div className="auth-feature-icon"><ShieldCheck size={16} /></div>
-            <span>Secure &amp; private — only you can see your data</span>
+            <span>Secure & private — only you can see your data</span>
           </div>
         </div>
 
-        {/* Decorative card preview */}
         <div className="auth-deco-cards">
           <div className="auth-deco-card">
             <div className="auth-deco-label">This month's savings</div>
@@ -75,7 +83,6 @@ const Login = () => {
         </div>
       </div>
 
-      {/* ── Right panel ── */}
       <div className="auth-split-right">
         <div className="auth-form-box">
           <div className="auth-form-header">
@@ -83,12 +90,7 @@ const Login = () => {
             <p className="auth-form-sub">Sign in to your account to continue</p>
           </div>
 
-          {error && (
-            <div className="auth-error">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              {error}
-            </div>
-          )}
+          {error && <div className="auth-error">{error}</div>}
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="auth-field">
@@ -120,17 +122,12 @@ const Login = () => {
             </div>
 
             <button type="submit" className="auth-submit-btn" disabled={loading}>
-              {loading ? (
-                <span className="auth-spinner" />
-              ) : (
-                <>Sign in <ArrowRight size={16} /></>
-              )}
+              {loading ? <span className="auth-spinner" /> : <>Sign in <ArrowRight size={16} /></>}
             </button>
           </form>
 
           <p className="auth-form-switch">
-            Don't have an account?{' '}
-            <Link to="/signup">Create one free</Link>
+            Don't have an account? <Link to="/signup">Create one free</Link>
           </p>
         </div>
       </div>

@@ -1,46 +1,73 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import api from '../utils/api';
+import axios from 'axios';
+
+const API = process.env.REACT_APP_API_URL;
 
 const TransactionModal = ({ onClose, onSaved, editing }) => {
   const [type, setType] = useState(editing?.type || 'expense');
   const [categories, setCategories] = useState([]);
-  const [form, setForm] = useState({
-    category_id: editing?.category_id || '',
-    amount: editing?.amount || '',
-    description: editing?.description || '',
-    date: editing?.date ? editing.date.slice(0, 10) : new Date().toISOString().slice(0, 10),
-  });
+  const [amount, setAmount] = useState(editing?.amount || '');
+  const [date, setDate] = useState(editing?.date ? editing.date.slice(0, 10) : new Date().toISOString().slice(0, 10));
+  const [categoryId, setCategoryId] = useState(editing?.category_id || '');
+  const [description, setDescription] = useState(editing?.description || '');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const token = localStorage.getItem('token');
+
   useEffect(() => {
-    api.get('/categories', { params: { type } }).then(res => setCategories(res.data));
+    loadCategories();
   }, [type]);
+
+  const loadCategories = async () => {
+    try {
+      const res = await axios.get(`${API}/categories?type=${type}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCategories(res.data);
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (!form.amount || !form.date) {
+    if (!amount || !date) {
       setError('Amount and date are required');
       return;
     }
 
     setSaving(true);
+
     try {
-      const payload = { ...form, type, category_id: form.category_id || null };
+      const payload = {
+        type: type,
+        amount: amount,
+        date: date,
+        category_id: categoryId || null,
+        description: description
+      };
+
       if (editing) {
-        await api.put(`/transactions/${editing.id}`, payload);
+        await axios.put(`${API}/transactions/${editing.id}`, payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
       } else {
-        await api.post('/transactions', payload);
+        await axios.post(`${API}/transactions`, payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
       }
+
       onSaved();
     } catch (err) {
+      console.log(err);
       setError(err.response?.data?.message || 'Failed to save transaction');
-    } finally {
-      setSaving(false);
     }
+
+    setSaving(false);
   };
 
   return (
@@ -79,8 +106,8 @@ const TransactionModal = ({ onClose, onSaved, editing }) => {
                 step="0.01"
                 min="0"
                 placeholder="0.00"
-                value={form.amount}
-                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
                 required
               />
             </div>
@@ -88,8 +115,8 @@ const TransactionModal = ({ onClose, onSaved, editing }) => {
               <label>Date</label>
               <input
                 type="date"
-                value={form.date}
-                onChange={(e) => setForm({ ...form, date: e.target.value })}
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
                 required
               />
             </div>
@@ -97,10 +124,7 @@ const TransactionModal = ({ onClose, onSaved, editing }) => {
 
           <div className="form-group">
             <label>Category</label>
-            <select
-              value={form.category_id}
-              onChange={(e) => setForm({ ...form, category_id: e.target.value })}
-            >
+            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
               <option value="">Uncategorized</option>
               {categories.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
@@ -112,9 +136,9 @@ const TransactionModal = ({ onClose, onSaved, editing }) => {
             <label>Description</label>
             <input
               type="text"
-              placeholder="e.g. Groceries at Trader Joe's"
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="e.g. Groceries at DMart"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
             />
           </div>
 

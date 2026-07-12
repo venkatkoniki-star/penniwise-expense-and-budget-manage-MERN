@@ -1,38 +1,59 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, ArrowUpRight, ArrowDownRight, Minus, ArrowRight } from 'lucide-react';
-import api from '../utils/api';
+import { Plus, ArrowUpRight, ArrowDownRight, ArrowRight } from 'lucide-react';
+import axios from 'axios';
 import Layout from '../components/Layout';
 import TransactionModal from '../components/TransactionModal';
 
+const API = process.env.REACT_APP_API_URL;
+
 const Dashboard = () => {
   const now = new Date();
-  const [month] = useState(now.getMonth() + 1);
-  const [year] = useState(now.getFullYear());
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
+
   const [report, setReport] = useState(null);
   const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
 
-  const load = useCallback(async () => {
+  const token = localStorage.getItem('token');
+  const monthName = now.toLocaleString('default', { month: 'long' });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
     setLoading(true);
-    const [reportRes, txRes] = await Promise.all([
-      api.get('/reports/monthly', { params: { month, year } }),
-      api.get('/transactions', { params: { limit: 6 } }),
-    ]);
-    setReport(reportRes.data);
-    setRecent(txRes.data);
+
+    try {
+      const reportRes = await axios.get(`${API}/reports/monthly?month=${month}&year=${year}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setReport(reportRes.data);
+    } catch (err) {
+      console.log('report error', err);
+    }
+
+    try {
+      const txRes = await axios.get(`${API}/transactions?limit=6`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setRecent(txRes.data);
+    } catch (err) {
+      console.log('transactions error', err);
+    }
+
     setLoading(false);
-  }, [month, year]);
+  };
 
-  useEffect(() => { load(); }, [load]);
+  if (loading) return <Layout><div className="loading">Loading...</div></Layout>;
+  if (!report) return <Layout><div className="loading">Something went wrong.</div></Layout>;
 
-  if (loading || !report) return <Layout><div className="loading">Loading...</div></Layout>;
-
-  const income = parseFloat(report.summary.total_income || 0);
-  const expenses = parseFloat(report.summary.total_expenses || 0);
+  const income = parseFloat(report.summary.total_income) || 0;
+  const expenses = parseFloat(report.summary.total_expenses) || 0;
   const balance = income - expenses;
-  const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
 
   return (
     <Layout>
@@ -66,9 +87,7 @@ const Dashboard = () => {
           <div className={`stat-value balance ${balance >= 0 ? 'positive' : 'negative'}`}>
             ${balance.toFixed(2)}
           </div>
-          <div className="stat-sub" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Minus size={12} /> income minus expenses
-          </div>
+          <div className="stat-sub">income minus expenses</div>
         </div>
       </div>
 
@@ -111,20 +130,19 @@ const Dashboard = () => {
             recent.map(t => (
               <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid var(--border-light)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: 8, background: t.category_color ? `${t.category_color}18` : 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <span className="cat-dot" style={{ background: t.category_color || '#9B9A94' }} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.825rem', fontWeight: 500, color: 'var(--text-primary)' }}>
+                    <div style={{ fontSize: '0.825rem', fontWeight: 500 }}>
                       {t.description || t.category_name || 'Transaction'}
                     </div>
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                       {new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      {t.category_name && ` · ${t.category_name}`}
                     </div>
                   </div>
                 </div>
-                <span className={t.type === 'income' ? 'amount-income' : 'amount-expense'} style={{ fontSize: '0.845rem' }}>
+                <span className={t.type === 'income' ? 'amount-income' : 'amount-expense'}>
                   {t.type === 'income' ? '+' : '-'}${parseFloat(t.amount).toFixed(2)}
                 </span>
               </div>
@@ -137,13 +155,13 @@ const Dashboard = () => {
         <div className="card" style={{ marginTop: 18 }}>
           <div className="card-title">Budget status</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
-            {report.budgetComparison.map(b => {
+            {report.budgetComparison.map((b, i) => {
               const pct = Math.min((parseFloat(b.spent) / parseFloat(b.budgeted)) * 100, 100);
               const over = parseFloat(b.spent) > parseFloat(b.budgeted);
               return (
-                <div key={b.name} style={{ padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 9, border: '1px solid var(--border)' }}>
+                <div key={i} style={{ padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 9, border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>{b.name}</span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{b.name}</span>
                     <span style={{ fontSize: '0.75rem', color: over ? 'var(--red)' : 'var(--text-muted)' }}>{pct.toFixed(0)}%</span>
                   </div>
                   <div className="progress-bar">
@@ -160,7 +178,7 @@ const Dashboard = () => {
       )}
 
       {showModal && (
-        <TransactionModal onClose={() => setShowModal(false)} onSaved={() => { setShowModal(false); load(); }} />
+        <TransactionModal onClose={() => setShowModal(false)} onSaved={() => { setShowModal(false); loadData(); }} />
       )}
     </Layout>
   );
