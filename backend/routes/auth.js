@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const pool = require('../config/db');
+const User = require('../models/User');
+const Category = require('../models/Category');
+const auth = require('../middleware/auth');
 
 const DEFAULT_CATEGORIES = [
   { name: 'Food & Dining', type: 'expense', color: '#F97316', icon: 'utensils' },
@@ -19,8 +21,8 @@ const DEFAULT_CATEGORIES = [
   { name: 'Other Income', type: 'income', color: '#6B7280', icon: 'plus-circle' },
 ];
 
-// POST /api/auth/register
-router.post('/register', async (req, res) => {
+// POST /api/auth/register or /api/auth/signup
+router.post(['/register', '/signup'], async (req, res) => {
   const { name, email, password } = req.body;
 
   if (!name || !email || !password)
@@ -30,30 +32,41 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ message: 'Password must be at least 6 characters' });
 
   try {
-    const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
-    if (existing.length > 0)
+    const existing = await User.findOne({ email: email.toLowerCase() });
+    if (existing)
       return res.status(409).json({ message: 'Email already registered' });
 
     const hashed = await bcrypt.hash(password, 10);
-    const [result] = await pool.query(
-      'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
-      [name, email, hashed]
-    );
-
-    const userId = result.insertId;
+    const user = await User.create({
+      name,
+      email: email.toLowerCase(),
+      password: hashed,
+      currency: 'INR',
+    });
 
     // Seed default categories
-    const catValues = DEFAULT_CATEGORIES.map(c => [userId, c.name, c.type, c.color, c.icon]);
-    await pool.query(
-      'INSERT INTO categories (user_id, name, type, color, icon) VALUES ?',
-      [catValues]
-    );
+    const catValues = DEFAULT_CATEGORIES.map(c => ({
+      user_id: user._id,
+      name: c.name,
+      type: c.type,
+      color: c.color,
+      icon: c.icon,
+    }));
+    await Category.insertMany(catValues);
 
-    const token = jwt.sign({ userId }, process.env.JWT_SECRET || 'fallback_secret', {
+    const token = jwt.sign({ userId: user._id.toString() }, process.env.JWT_SECRET || 'fallback_secret', {
       expiresIn: process.env.JWT_EXPIRES_IN || '7d',
     });
 
-    res.status(201).json({ token, user: { id: userId, name, email } });
+    res.status(201).json({
+      token,
+      user: {
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        currency: user.currency,
+      },
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -68,20 +81,27 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ message: 'Email and password are required' });
 
   try {
-    const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
-    if (rows.length === 0)
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user)
       return res.status(401).json({ message: 'Invalid email or password' });
 
-    const user = rows[0];
     const match = await bcrypt.compare(password, user.password);
     if (!match)
       return res.status(401).json({ message: 'Invalid email or password' });
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'fallback_secret', {
+    const token = jwt.sign({ userId: user._id.toString() }, process.env.JWT_SECRET || 'fallback_secret', {
       expiresIn: process.env.JWT_EXPIRES_IN || '7d',
     });
 
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+    res.json({
+      token,
+      user: {
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        currency: user.currency || 'INR',
+      },
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -89,11 +109,17 @@ router.post('/login', async (req, res) => {
 });
 
 // GET /api/auth/me
-router.get('/me', require('../middleware/auth'), async (req, res) => {
+router.get('/me', auth, async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT id, name, email, currency, created_at FROM users WHERE id = ?', [req.userId]);
-    if (rows.length === 0) return res.status(404).json({ message: 'User not found' });
-    res.json(rows[0]);
+    const user = await User.findById(req.userId).select('name email currency created_at');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      currency: user.currency || 'INR',
+      created_at: user.created_at,
+    });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }

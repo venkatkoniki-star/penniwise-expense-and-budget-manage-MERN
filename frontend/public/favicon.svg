@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Tactical dark background -->
+  <rect width="64" height="64" rx="14" fill="#060608" />
+  <rect x="2" y="2" width="60" height="60" rx="12" stroke="rgba(255, 77, 0, 0.45)" stroke-width="1.8" />
+  
+  <!-- Corner tactical brackets -->
+  <path d="M6 16V7H15" stroke="#ff4d00" stroke-width="2.4" stroke-linecap="square" />
+  <path d="M58 16V7H49" stroke="#ff4d00" stroke-width="2.4" stroke-linecap="square" />
+  <path d="M6 48V57H15" stroke="#ff4d00" stroke-width="2.4" stroke-linecap="square" />
+  <path d="M58 48V57H49" stroke="#ff4d00" stroke-width="2.4" stroke-linecap="square" />
+  
+  <!-- Ambient tactical glow -->
+  <circle cx="32" cy="34" r="18" fill="rgba(255, 77, 0, 0.18)" />
+  
+  <!-- Precision Vector Rupee (₹) Symbol -->
+  <path d="M22 20h20 M22 28h16 M28 20v21 M28 28c7 0 10.5 2.5 10.5 7.5S35 43 28 43 M28 43l12 11" 
+        stroke="#ffffff" 
+        stroke-width="3.8" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" />
+  
+  <!-- Tactical Active Status LED -->
+  <circle cx="48" cy="18" r="3.2" fill="#ff4d00" />
+  <circle cx="48" cy="18" r="1.5" fill="#ffffff" />
+</svg>

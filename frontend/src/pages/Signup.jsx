@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, ArrowRight, TrendingUp, ShieldCheck, PieChart } from 'lucide-react';
+import { User, Mail, Lock, ArrowRight, TrendingUp, ShieldCheck, PieChart, Sun, Moon, Sparkles } from 'lucide-react';
 import axios from 'axios';
+import { useTheme } from '../context/ThemeContext';
 
-const API = process.env.REACT_APP_API_URL;
+import ThemeSelector from '../components/ThemeSelector';
+
+const API = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const Signup = () => {
   const [name, setName] = useState('');
@@ -12,6 +15,7 @@ const Signup = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,7 +38,7 @@ const Signup = () => {
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
 
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       console.log(err);
       setError(err.response?.data?.message || 'Sign up failed. Please try again.');
@@ -52,50 +56,59 @@ const Signup = () => {
               <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>
             </svg>
           </div>
-          <span className="auth-brand-name">Pennywise</span>
+          <span className="auth-brand-name">pennywise<i>.</i></span>
         </div>
 
         <div className="auth-split-hero">
           <h1 className="auth-hero-heading">Start your<br />financial journey.</h1>
-          <p className="auth-hero-sub">Join thousands who track their spending, hit their savings goals, and finally feel in control of their money.</p>
+          <p className="auth-hero-sub">Join thousands who track their spending, hit their savings goals, and finally feel in control of their money with a precision Rupee (₹) OS.</p>
         </div>
 
         <div className="auth-feature-list">
           <div className="auth-feature-item">
             <div className="auth-feature-icon"><TrendingUp size={16} /></div>
-            <span>Real-time expense tracking</span>
+            <span>Categorized Rupee telemetry &amp; live cashflow</span>
           </div>
           <div className="auth-feature-item">
             <div className="auth-feature-icon"><PieChart size={16} /></div>
-            <span>Monthly reports & breakdowns</span>
+            <span>Automated monthly budget threshold guards</span>
           </div>
           <div className="auth-feature-item">
             <div className="auth-feature-icon"><ShieldCheck size={16} /></div>
-            <span>Secure & private — only you can see your data</span>
+            <span>Encrypted credentials &amp; scoped privacy</span>
           </div>
         </div>
 
         <div className="auth-deco-cards">
           <div className="auth-deco-card">
-            <div className="auth-deco-label">This month's savings</div>
-            <div className="auth-deco-value" style={{ color: '#10B981' }}>+₹14,250</div>
+            <div className="auth-deco-label">Default Architecture</div>
+            <div className="auth-deco-value" style={{ color: 'var(--green)' }}>INR (₹) Native</div>
             <div className="auth-deco-bar">
-              <div className="auth-deco-bar-fill" style={{ width: '68%' }} />
+              <div className="auth-deco-bar-fill" style={{ width: '100%' }} />
             </div>
-            <div className="auth-deco-meta">68% of monthly goal</div>
-          </div>
-          <div className="auth-deco-card auth-deco-card-sm">
-            <div className="auth-deco-label">Budget used</div>
-            <div className="auth-deco-value" style={{ color: '#4F46E5' }}>42%</div>
+            <div className="auth-deco-meta">Pre-configured with 12 smart categories</div>
           </div>
         </div>
       </div>
 
-      <div className="auth-split-right">
+      <div className="auth-split-right" style={{ position: 'relative' }}>
+        {/* Floating Top Controls */}
+        <div style={{ position: 'absolute', top: 20, right: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Link
+            to="/"
+            className="btn btn-secondary btn-sm"
+            style={{ fontSize: '0.75rem', gap: 5 }}
+            title="Return to 3D Landing Page"
+          >
+            <Sparkles size={13} /> 3D Landing
+          </Link>
+          <ThemeSelector compact={true} placement="bottom" showLabel={false} />
+        </div>
+
         <div className="auth-form-box">
           <div className="auth-form-header">
-            <h2 className="auth-form-title">Create your account</h2>
-            <p className="auth-form-sub">Free forever. No credit card needed.</p>
+            <h2 className="auth-form-title">Create account</h2>
+            <p className="auth-form-sub">Start taking control of your personal finances today</p>
           </div>
 
           {error && <div className="auth-error">{error}</div>}
@@ -107,7 +120,7 @@ const Signup = () => {
                 <User size={15} className="auth-input-icon" />
                 <input
                   type="text"
-                  placeholder="Jane Doe"
+                  placeholder="Rahul Sharma"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -121,7 +134,7 @@ const Signup = () => {
                 <Mail size={15} className="auth-input-icon" />
                 <input
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder="operator@pennywise.app"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -135,16 +148,17 @@ const Signup = () => {
                 <Lock size={15} className="auth-input-icon" />
                 <input
                   type="password"
-                  placeholder="At least 6 characters"
+                  placeholder="Create a strong password (6+ chars)"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  minLength={6}
                 />
               </div>
             </div>
 
             <button type="submit" className="auth-submit-btn" disabled={loading}>
-              {loading ? <span className="auth-spinner" /> : <>Create account <ArrowRight size={16} /></>}
+              {loading ? <span className="auth-spinner" /> : <>Create Account <ArrowRight size={16} /></>}
             </button>
           </form>
 

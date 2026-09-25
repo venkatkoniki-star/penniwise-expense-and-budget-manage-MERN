@@ -4,6 +4,7 @@ import axios from 'axios';
 import Layout from '../components/Layout';
 import BudgetModal from '../components/BudgetModal';
 import MonthPicker from '../components/MonthPicker';
+import { formatCurrency } from '../utils/format';
 
 const API = process.env.REACT_APP_API_URL;
 
@@ -56,10 +57,10 @@ const Budgets = () => {
   let overCount = 0;
 
   for (let i = 0; i < budgets.length; i++) {
-    totalBudgeted = totalBudgeted + parseFloat(budgets[i].amount);
-    totalSpent = totalSpent + parseFloat(budgets[i].spent);
+    totalBudgeted += parseFloat(budgets[i].amount) || 0;
+    totalSpent += parseFloat(budgets[i].spent) || 0;
     if (parseFloat(budgets[i].spent) > parseFloat(budgets[i].amount)) {
-      overCount = overCount + 1;
+      overCount += 1;
     }
   }
 
@@ -68,9 +69,9 @@ const Budgets = () => {
       <div className="page-header">
         <div>
           <div className="page-title">Budgets</div>
-          <div className="page-subtitle">Set limits, track where you're at</div>
+          <div className="page-subtitle">Tactical allocation limits &amp; threshold guard</div>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div className="header-actions">
           <MonthPicker month={month} year={year} onChange={handleMonthChange} />
           <button className="btn btn-primary" onClick={() => setShowModal(true)}>
             <Plus size={15} /> Set budget
@@ -79,19 +80,19 @@ const Budgets = () => {
       </div>
 
       {budgets.length > 0 && (
-        <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+        <div className="budget-stats-grid">
           <div style={{ flex: 1, padding: '14px 18px', background: 'var(--surface)', borderRadius: 10, border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Total budgeted</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800 }}>${totalBudgeted.toFixed(2)}</div>
+            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', marginBottom: 4 }}>Total Allocated</div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{formatCurrency(totalBudgeted)}</div>
           </div>
           <div style={{ flex: 1, padding: '14px 18px', background: 'var(--surface)', borderRadius: 10, border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Total spent</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: totalSpent > totalBudgeted ? 'var(--red)' : 'var(--text-primary)' }}>${totalSpent.toFixed(2)}</div>
+            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', marginBottom: 4 }}>Total Utilized</div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: totalSpent > totalBudgeted ? 'var(--red)' : 'var(--text-primary)' }}>{formatCurrency(totalSpent)}</div>
           </div>
-          <div style={{ flex: 1, padding: '14px 18px', background: overCount > 0 ? 'var(--red-light)' : 'var(--green-light)', borderRadius: 10, border: `1px solid ${overCount > 0 ? '#fca5a5' : '#b7e4cc'}` }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4, color: overCount > 0 ? 'var(--red)' : 'var(--green)' }}>Status</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.9rem', fontWeight: 700, color: overCount > 0 ? 'var(--red)' : 'var(--green)' }}>
-              {overCount > 0 ? <><AlertTriangle size={16} /> {overCount} over budget</> : <><CheckCircle size={16} /> On track</>}
+          <div style={{ flex: 1, padding: '14px 18px', background: overCount > 0 ? 'var(--red-light)' : 'var(--green-light)', borderRadius: 10, border: `1px solid ${overCount > 0 ? 'var(--red-border)' : 'var(--green-border)'}` }}>
+            <div style={{ fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', marginBottom: 4, color: overCount > 0 ? 'var(--red)' : 'var(--green)' }}>Status Guard</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.95rem', fontWeight: 700, color: overCount > 0 ? 'var(--red)' : 'var(--green)' }}>
+              {overCount > 0 ? <><AlertTriangle size={16} /> {overCount} over budget</> : <><CheckCircle size={16} /> All systems on track</>}
             </div>
           </div>
         </div>
@@ -99,15 +100,15 @@ const Budgets = () => {
 
       <div className="card">
         {loading ? (
-          <div className="loading">Loading...</div>
+          <div className="loading">Loading budgets...</div>
         ) : budgets.length === 0 ? (
-          <div className="empty-state"><p>No budgets set for this month yet.</p></div>
+          <div className="empty-state"><p>No budget limits configured for this month.</p></div>
         ) : (
           <div>
             {budgets.map(b => {
-              const spent = parseFloat(b.spent);
-              const limit = parseFloat(b.amount);
-              const pct = Math.min((spent / limit) * 100, 100);
+              const spent = parseFloat(b.spent) || 0;
+              const limit = parseFloat(b.amount) || 0;
+              const pct = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
               const over = spent > limit;
               const remaining = limit - spent;
 
@@ -120,17 +121,17 @@ const Budgets = () => {
                       </div>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{b.name}</div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                          {over ? `over by $${Math.abs(remaining).toFixed(2)}` : `$${remaining.toFixed(2)} remaining`}
+                        <div style={{ fontSize: '0.72rem', color: over ? 'var(--red)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                          {over ? `⚠️ Over limit by ${formatCurrency(Math.abs(remaining))}` : `${formatCurrency(remaining)} remaining`}
                         </div>
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 700, color: over ? 'var(--red)' : 'var(--text-primary)' }}>${spent.toFixed(2)}</div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>of ${limit.toFixed(2)}</div>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 700, fontFamily: 'var(--font-mono)', color: over ? 'var(--red)' : 'var(--text-primary)' }}>{formatCurrency(spent)}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>of {formatCurrency(limit)} ({pct.toFixed(0)}%)</div>
                       </div>
-                      <button className="btn btn-danger btn-icon btn-sm" onClick={() => handleDelete(b.id)}>
+                      <button className="btn btn-danger btn-icon btn-sm" title="Delete budget" onClick={() => handleDelete(b.id)}>
                         <Trash2 size={13} />
                       </button>
                     </div>

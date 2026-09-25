@@ -1,19 +1,27 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../config/db');
+const Category = require('../models/Category');
 const auth = require('../middleware/auth');
 
 // GET /api/categories
 router.get('/', auth, async (req, res) => {
   const { type } = req.query;
-  let query = 'SELECT * FROM categories WHERE user_id = ?';
-  const params = [req.userId];
-  if (type) { query += ' AND type = ?'; params.push(type); }
-  query += ' ORDER BY type, name';
+  const filter = { user_id: req.userId };
+  if (type) {
+    filter.type = type;
+  }
 
   try {
-    const [rows] = await pool.query(query, params);
-    res.json(rows);
+    const categories = await Category.find(filter).sort({ type: 1, name: 1 });
+    res.json(
+      categories.map(c => ({
+        id: c._id.toString(),
+        name: c.name,
+        type: c.type,
+        color: c.color,
+        icon: c.icon,
+      }))
+    );
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -25,11 +33,21 @@ router.post('/', auth, async (req, res) => {
   if (!name || !type) return res.status(400).json({ message: 'name and type required' });
 
   try {
-    const [result] = await pool.query(
-      'INSERT INTO categories (user_id, name, type, color, icon) VALUES (?, ?, ?, ?, ?)',
-      [req.userId, name, type, color || '#6B7280', icon || 'tag']
-    );
-    res.status(201).json({ id: result.insertId, name, type, color, icon });
+    const category = await Category.create({
+      user_id: req.userId,
+      name,
+      type,
+      color: color || '#6B7280',
+      icon: icon || 'tag',
+    });
+
+    res.status(201).json({
+      id: category._id.toString(),
+      name: category.name,
+      type: category.type,
+      color: category.color,
+      icon: category.icon,
+    });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -38,10 +56,13 @@ router.post('/', auth, async (req, res) => {
 // DELETE /api/categories/:id
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const [check] = await pool.query('SELECT id FROM categories WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
-    if (check.length === 0) return res.status(404).json({ message: 'Category not found' });
+    const category = await Category.findOneAndDelete({
+      _id: req.params.id,
+      user_id: req.userId,
+    });
 
-    await pool.query('DELETE FROM categories WHERE id = ?', [req.params.id]);
+    if (!category) return res.status(404).json({ message: 'Category not found' });
+
     res.json({ message: 'Deleted' });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });

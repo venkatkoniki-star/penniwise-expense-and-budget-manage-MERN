@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, ArrowRight, TrendingUp, ShieldCheck, PieChart } from 'lucide-react';
+import { Mail, Lock, ArrowRight, TrendingUp, ShieldCheck, PieChart, Sun, Moon, Sparkles } from 'lucide-react';
 import axios from 'axios';
+import { useTheme } from '../context/ThemeContext';
 
-const API = process.env.REACT_APP_API_URL;
+import ThemeSelector from '../components/ThemeSelector';
+
+const API = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -11,6 +14,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,7 +30,7 @@ const Login = () => {
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
 
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       console.log(err);
       setError(err.response?.data?.message || 'Login failed. Please try again.');
@@ -44,50 +48,59 @@ const Login = () => {
               <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>
             </svg>
           </div>
-          <span className="auth-brand-name">Pennywise</span>
+          <span className="auth-brand-name">pennywise<i>.</i></span>
         </div>
 
         <div className="auth-split-hero">
           <h1 className="auth-hero-heading">Your money,<br />under control.</h1>
-          <p className="auth-hero-sub">Track spending, set budgets, and understand where every rupee goes — all in one clean dashboard.</p>
+          <p className="auth-hero-sub">Track spending, set budgets, and understand where every rupee goes — all in one clean financial operating system.</p>
         </div>
 
         <div className="auth-feature-list">
           <div className="auth-feature-item">
             <div className="auth-feature-icon"><TrendingUp size={16} /></div>
-            <span>Real-time expense tracking</span>
+            <span>Real-time Rupee (₹) expense tracking</span>
           </div>
           <div className="auth-feature-item">
             <div className="auth-feature-icon"><PieChart size={16} /></div>
-            <span>Monthly reports & breakdowns</span>
+            <span>Monthly reports &amp; interactive telemetry</span>
           </div>
           <div className="auth-feature-item">
             <div className="auth-feature-icon"><ShieldCheck size={16} /></div>
-            <span>Secure & private — only you can see your data</span>
+            <span>Encrypted &amp; private — strictly scoped to your account</span>
           </div>
         </div>
 
         <div className="auth-deco-cards">
           <div className="auth-deco-card">
-            <div className="auth-deco-label">This month's savings</div>
-            <div className="auth-deco-value" style={{ color: '#10B981' }}>+₹14,250</div>
+            <div className="auth-deco-label">Monthly Savings Velocity</div>
+            <div className="auth-deco-value" style={{ color: 'var(--green)' }}>+₹14,250.00</div>
             <div className="auth-deco-bar">
               <div className="auth-deco-bar-fill" style={{ width: '68%' }} />
             </div>
-            <div className="auth-deco-meta">68% of monthly goal</div>
-          </div>
-          <div className="auth-deco-card auth-deco-card-sm">
-            <div className="auth-deco-label">Budget used</div>
-            <div className="auth-deco-value" style={{ color: '#4F46E5' }}>42%</div>
+            <div className="auth-deco-meta">68% of monthly savings target achieved</div>
           </div>
         </div>
       </div>
 
-      <div className="auth-split-right">
+      <div className="auth-split-right" style={{ position: 'relative' }}>
+        {/* Floating Top Controls */}
+        <div style={{ position: 'absolute', top: 20, right: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Link
+            to="/"
+            className="btn btn-secondary btn-sm"
+            style={{ fontSize: '0.75rem', gap: 5 }}
+            title="Return to 3D Landing Page"
+          >
+            <Sparkles size={13} /> 3D Landing
+          </Link>
+          <ThemeSelector compact={true} placement="bottom" showLabel={false} />
+        </div>
+
         <div className="auth-form-box">
           <div className="auth-form-header">
             <h2 className="auth-form-title">Welcome back</h2>
-            <p className="auth-form-sub">Sign in to your account to continue</p>
+            <p className="auth-form-sub">Sign in to your account to access your console</p>
           </div>
 
           {error && <div className="auth-error">{error}</div>}
@@ -99,7 +112,7 @@ const Login = () => {
                 <Mail size={15} className="auth-input-icon" />
                 <input
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder="operator@pennywise.app"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -113,7 +126,7 @@ const Login = () => {
                 <Lock size={15} className="auth-input-icon" />
                 <input
                   type="password"
-                  placeholder="Enter your password"
+                  placeholder="Enter your secret password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -122,12 +135,12 @@ const Login = () => {
             </div>
 
             <button type="submit" className="auth-submit-btn" disabled={loading}>
-              {loading ? <span className="auth-spinner" /> : <>Sign in <ArrowRight size={16} /></>}
+              {loading ? <span className="auth-spinner" /> : <>Sign In <ArrowRight size={16} /></>}
             </button>
           </form>
 
           <p className="auth-form-switch">
-            Don't have an account? <Link to="/signup">Create one free</Link>
+            Don't have an account? <Link to="/signup">Create an account</Link>
           </p>
         </div>
       </div>

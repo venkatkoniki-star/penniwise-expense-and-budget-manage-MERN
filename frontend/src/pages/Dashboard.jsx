@@ -4,6 +4,7 @@ import { Plus, ArrowUpRight, ArrowDownRight, ArrowRight } from 'lucide-react';
 import axios from 'axios';
 import Layout from '../components/Layout';
 import TransactionModal from '../components/TransactionModal';
+import { formatCurrency, formatCurrencyWithSign } from '../utils/format';
 
 const API = process.env.REACT_APP_API_URL;
 
@@ -51,8 +52,8 @@ const Dashboard = () => {
   if (loading) return <Layout><div className="loading">Loading...</div></Layout>;
   if (!report) return <Layout><div className="loading">Something went wrong.</div></Layout>;
 
-  const income = parseFloat(report.summary.total_income) || 0;
-  const expenses = parseFloat(report.summary.total_expenses) || 0;
+  const income = parseFloat(report?.summary?.total_income) || 0;
+  const expenses = parseFloat(report?.summary?.total_expenses) || 0;
   const balance = income - expenses;
 
   return (
@@ -70,14 +71,14 @@ const Dashboard = () => {
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-label">Income</div>
-          <div className="stat-value income">${income.toFixed(2)}</div>
+          <div className="stat-value income">{formatCurrency(income)}</div>
           <div className="stat-sub" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <ArrowUpRight size={12} color="var(--green)" /> this month
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Expenses</div>
-          <div className="stat-value expense">${expenses.toFixed(2)}</div>
+          <div className="stat-value expense">{formatCurrency(expenses)}</div>
           <div className="stat-sub" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <ArrowDownRight size={12} color="var(--red)" /> this month
           </div>
@@ -85,7 +86,7 @@ const Dashboard = () => {
         <div className="stat-card">
           <div className="stat-label">Net balance</div>
           <div className={`stat-value balance ${balance >= 0 ? 'positive' : 'negative'}`}>
-            ${balance.toFixed(2)}
+            {balance < 0 ? '-' : ''}{formatCurrency(Math.abs(balance))}
           </div>
           <div className="stat-sub">income minus expenses</div>
         </div>
@@ -105,7 +106,7 @@ const Dashboard = () => {
                   <div className="category-row-info">
                     <div className="category-row-name">
                       <span>{c.category || 'Uncategorized'}</span>
-                      <span>${parseFloat(c.total).toFixed(2)}</span>
+                      <span>{formatCurrency(c.total)}</span>
                     </div>
                     <div className="progress-bar">
                       <div className="progress-fill" style={{ width: `${pct}%`, background: c.color || '#9B9A94' }} />
@@ -143,7 +144,7 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <span className={t.type === 'income' ? 'amount-income' : 'amount-expense'}>
-                  {t.type === 'income' ? '+' : '-'}${parseFloat(t.amount).toFixed(2)}
+                  {formatCurrencyWithSign(t.amount, t.type)}
                 </span>
               </div>
             ))
@@ -168,7 +169,7 @@ const Dashboard = () => {
                     <div className="progress-fill" style={{ width: `${pct}%`, background: over ? 'var(--red)' : 'var(--accent)' }} />
                   </div>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 5 }}>
-                    ${parseFloat(b.spent).toFixed(2)} of ${parseFloat(b.budgeted).toFixed(2)}
+                    {formatCurrency(b.spent)} of {formatCurrency(b.budgeted)}
                   </div>
                 </div>
               );

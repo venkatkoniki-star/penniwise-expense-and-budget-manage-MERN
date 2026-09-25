@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import Layout from '../components/Layout';
 import TransactionModal from '../components/TransactionModal';
+import { formatCurrency, formatCurrencyWithSign } from '../utils/format';
 
 const API = process.env.REACT_APP_API_URL;
 
@@ -22,12 +23,15 @@ const Transactions = () => {
     loadCategories();
   }, []);
 
-  const loadTransactions = async () => {
+  const loadTransactions = async (overrideType, overrideCategory) => {
     setLoading(true);
     try {
+      const activeType = overrideType !== undefined ? overrideType : typeFilter;
+      const activeCat = overrideCategory !== undefined ? overrideCategory : categoryFilter;
+
       let url = `${API}/transactions?limit=100`;
-      if (typeFilter) url = url + '&type=' + typeFilter;
-      if (categoryFilter) url = url + '&category_id=' + categoryFilter;
+      if (activeType) url += `&type=${activeType}`;
+      if (activeCat) url += `&category_id=${activeCat}`;
 
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` }
@@ -69,7 +73,7 @@ const Transactions = () => {
   const handleClear = () => {
     setTypeFilter('');
     setCategoryFilter('');
-    loadTransactions();
+    loadTransactions('', '');
   };
 
   let totalIncome = 0;
@@ -77,9 +81,9 @@ const Transactions = () => {
 
   for (let i = 0; i < transactions.length; i++) {
     if (transactions[i].type === 'income') {
-      totalIncome = totalIncome + parseFloat(transactions[i].amount);
+      totalIncome += parseFloat(transactions[i].amount) || 0;
     } else {
-      totalExpense = totalExpense + parseFloat(transactions[i].amount);
+      totalExpense += parseFloat(transactions[i].amount) || 0;
     }
   }
 
@@ -88,7 +92,7 @@ const Transactions = () => {
       <div className="page-header">
         <div>
           <div className="page-title">Transactions</div>
-          <div className="page-subtitle">Every entry, all in one place</div>
+          <div className="page-subtitle">Tactical ledger &amp; execution history</div>
         </div>
         <button className="btn btn-primary" onClick={() => { setEditing(null); setShowModal(true); }}>
           <Plus size={15} /> Add transaction
@@ -96,23 +100,23 @@ const Transactions = () => {
       </div>
 
       {transactions.length > 0 && (
-        <div style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
-          <div style={{ padding: '10px 16px', background: 'var(--green-light)', borderRadius: 8, border: '1px solid #b7e4cc' }}>
-            <div style={{ fontSize: '0.7rem', color: 'var(--green)', fontWeight: 600, textTransform: 'uppercase' }}>Total income</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--green)' }}>${totalIncome.toFixed(2)}</div>
+        <div className="tx-stats-grid">
+          <div style={{ padding: '12px 18px', background: 'var(--green-light)', borderRadius: 10, border: '1px solid var(--green-border)' }}>
+            <div style={{ fontSize: '0.68rem', color: 'var(--green)', fontWeight: 600, textTransform: 'uppercase', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>Total Inflow</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--green)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{formatCurrency(totalIncome)}</div>
           </div>
-          <div style={{ padding: '10px 16px', background: 'var(--red-light)', borderRadius: 8, border: '1px solid #fca5a5' }}>
-            <div style={{ fontSize: '0.7rem', color: 'var(--red)', fontWeight: 600, textTransform: 'uppercase' }}>Total expenses</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--red)' }}>${totalExpense.toFixed(2)}</div>
+          <div style={{ padding: '12px 18px', background: 'var(--red-light)', borderRadius: 10, border: '1px solid var(--red-border)' }}>
+            <div style={{ fontSize: '0.68rem', color: 'var(--red)', fontWeight: 600, textTransform: 'uppercase', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>Total Outflow</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--red)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{formatCurrency(totalExpense)}</div>
           </div>
         </div>
       )}
 
       <div className="filters-bar">
         <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
-          <option value="">All types</option>
-          <option value="income">Income</option>
-          <option value="expense">Expense</option>
+          <option value="">All transaction types</option>
+          <option value="income">Income (+)</option>
+          <option value="expense">Expense (-)</option>
         </select>
         <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
           <option value="">All categories</option>
@@ -126,9 +130,9 @@ const Transactions = () => {
 
       <div className="card">
         {loading ? (
-          <div className="loading">Loading...</div>
+          <div className="loading">Loading transactions...</div>
         ) : transactions.length === 0 ? (
-          <div className="empty-state"><p>No transactions found.</p></div>
+          <div className="empty-state"><p>No transactions match your criteria.</p></div>
         ) : (
           <div className="table-wrapper">
             <table>
@@ -139,20 +143,20 @@ const Transactions = () => {
                   <th>Category</th>
                   <th>Type</th>
                   <th>Amount</th>
-                  <th></th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {transactions.map(t => (
                   <tr key={t.id}>
-                    <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                      {new Date(t.date).toLocaleDateString()}
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>
+                      {new Date(t.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </td>
                     <td style={{ fontWeight: 500 }}>{t.description || '—'}</td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                         <span className="cat-dot" style={{ background: t.category_color || '#9B9A94' }} />
-                        {t.category_name || 'Uncategorized'}
+                        <span>{t.category_name || 'Uncategorized'}</span>
                       </div>
                     </td>
                     <td>
@@ -161,14 +165,14 @@ const Transactions = () => {
                       </span>
                     </td>
                     <td className={t.type === 'income' ? 'amount-income' : 'amount-expense'}>
-                      {t.type === 'income' ? '+' : '-'}${parseFloat(t.amount).toFixed(2)}
+                      {formatCurrencyWithSign(t.amount, t.type)}
                     </td>
                     <td>
-                      <div style={{ display: 'flex', gap: 4 }}>
-                        <button className="btn btn-secondary btn-icon btn-sm" onClick={() => { setEditing(t); setShowModal(true); }}>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button className="btn btn-secondary btn-icon btn-sm" title="Edit" onClick={() => { setEditing(t); setShowModal(true); }}>
                           <Pencil size={13} />
                         </button>
-                        <button className="btn btn-danger btn-icon btn-sm" onClick={() => handleDelete(t.id)}>
+                        <button className="btn btn-danger btn-icon btn-sm" title="Delete" onClick={() => handleDelete(t.id)}>
                           <Trash2 size={13} />
                         </button>
                       </div>

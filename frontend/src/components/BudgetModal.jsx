@@ -31,7 +31,7 @@ const BudgetModal = ({ onClose, onSaved, month, year }) => {
 
   const handleCategoryChange = (id) => {
     setCategoryId(id);
-    const cat = categories.find(c => c.id === parseInt(id));
+    const cat = categories.find(c => String(c.id) === String(id));
     if (cat) {
       setName(cat.name);
     }
@@ -101,12 +101,12 @@ const BudgetModal = ({ onClose, onSaved, month, year }) => {
           </div>
 
           <div className="form-group">
-            <label>Monthly limit</label>
+            <label>Monthly limit (₹)</label>
             <input
               type="number"
               step="0.01"
               min="0"
-              placeholder="0.00"
+              placeholder="₹ 0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required

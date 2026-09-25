@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../config/db');
+const Budget = require('../models/Budget');
+const Transaction = require('../models/Transaction');
 const auth = require('../middleware/auth');
 
 // GET /api/budgets?month=&year=
@@ -8,20 +9,57 @@ router.get('/', auth, async (req, res) => {
   const { month, year } = req.query;
   if (!month || !year) return res.status(400).json({ message: 'month and year are required' });
 
+  const m = parseInt(month, 10);
+  const y = parseInt(year, 10);
+
   try {
-    const [rows] = await pool.query(
-      `SELECT b.*, c.name AS category_name, c.color AS category_color, c.icon AS category_icon,
-        COALESCE((
-          SELECT SUM(t.amount) FROM transactions t
-          WHERE t.user_id = b.user_id AND t.category_id = b.category_id
-            AND MONTH(t.date) = b.month AND YEAR(t.date) = b.year AND t.type = 'expense'
-        ), 0) AS spent
-       FROM budgets b
-       LEFT JOIN categories c ON b.category_id = c.id
-       WHERE b.user_id = ? AND b.month = ? AND b.year = ?`,
-      [req.userId, month, year]
-    );
-    res.json(rows);
+    const budgets = await Budget.find({
+      user_id: req.userId,
+      month: m,
+      year: y,
+    }).populate('category_id');
+
+    const start = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0, 0));
+    const end = new Date(Date.UTC(y, m, 1, 0, 0, 0, 0));
+
+    const expenseTransactions = await Transaction.find({
+      user_id: req.userId,
+      type: 'expense',
+      date: { $gte: start, $lt: end },
+    });
+
+    const result = budgets.map((b) => {
+      const cat = b.category_id;
+      const isPopulated = cat && typeof cat === 'object' && cat.name;
+      const catIdStr = isPopulated ? cat._id.toString() : (cat ? cat.toString() : null);
+
+      let spent = 0;
+      if (catIdStr) {
+        spent = expenseTransactions
+          .filter((t) => t.category_id && t.category_id.toString() === catIdStr)
+          .reduce((sum, t) => sum + (t.amount || 0), 0);
+      } else {
+        spent = expenseTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
+      }
+
+      return {
+        id: b._id.toString(),
+        user_id: b.user_id.toString(),
+        category_id: catIdStr,
+        category_name: isPopulated ? cat.name : null,
+        category_color: isPopulated ? cat.color : null,
+        category_icon: isPopulated ? cat.icon : null,
+        name: b.name,
+        amount: b.amount,
+        month: b.month,
+        year: b.year,
+        spent,
+        created_at: b.created_at,
+        updated_at: b.updated_at,
+      };
+    });
+
+    res.json(result);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -35,13 +73,32 @@ router.post('/', auth, async (req, res) => {
     return res.status(400).json({ message: 'name, amount, month, year are required' });
 
   try {
-    const [result] = await pool.query(
-      `INSERT INTO budgets (user_id, category_id, name, amount, month, year)
-       VALUES (?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE amount = VALUES(amount), name = VALUES(name)`,
-      [req.userId, category_id || null, name, amount, month, year]
+    const filter = {
+      user_id: req.userId,
+      category_id: category_id || null,
+      month: parseInt(month, 10),
+      year: parseInt(year, 10),
+    };
+
+    const update = {
+      name,
+      amount: parseFloat(amount),
+    };
+
+    const budget = await Budget.findOneAndUpdate(
+      filter,
+      { $set: update },
+      { new: true, upsert: true }
     );
-    res.status(201).json({ id: result.insertId, message: 'Budget saved' });
+
+    res.status(201).json({
+      id: budget._id.toString(),
+      name: budget.name,
+      amount: budget.amount,
+      month: budget.month,
+      year: budget.year,
+      message: 'Budget saved',
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -52,10 +109,14 @@ router.post('/', auth, async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   const { name, amount } = req.body;
   try {
-    const [check] = await pool.query('SELECT id FROM budgets WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
-    if (check.length === 0) return res.status(404).json({ message: 'Budget not found' });
+    const budget = await Budget.findOneAndUpdate(
+      { _id: req.params.id, user_id: req.userId },
+      { name, amount: parseFloat(amount) },
+      { new: true }
+    );
 
-    await pool.query('UPDATE budgets SET name=?, amount=? WHERE id=?', [name, amount, req.params.id]);
+    if (!budget) return res.status(404).json({ message: 'Budget not found' });
+
     res.json({ message: 'Updated' });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
@@ -65,10 +126,13 @@ router.put('/:id', auth, async (req, res) => {
 // DELETE /api/budgets/:id
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const [check] = await pool.query('SELECT id FROM budgets WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
-    if (check.length === 0) return res.status(404).json({ message: 'Budget not found' });
+    const budget = await Budget.findOneAndDelete({
+      _id: req.params.id,
+      user_id: req.userId,
+    });
 
-    await pool.query('DELETE FROM budgets WHERE id = ?', [req.params.id]);
+    if (!budget) return res.status(404).json({ message: 'Budget not found' });
+
     res.json({ message: 'Deleted' });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
