@@ -27,13 +27,19 @@ const PublicOnlyRoute = ({ children }) => {
   return children;
 };
 
+// Direct entry into the actual application
+const AppEntry = () => {
+  const token = localStorage.getItem('token');
+  return token ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />;
+};
+
 function App() {
   return (
     <ThemeProvider>
       <BrowserRouter>
         <Routes>
-          {/* Landing Page as Default Entry */}
-          <Route path="/" element={<LandingPage />} />
+          {/* Main Application Entry */}
+          <Route path="/" element={<AppEntry />} />
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/scene" element={<Scene />} />
 

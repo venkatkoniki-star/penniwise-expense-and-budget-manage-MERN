@@ -109,7 +109,20 @@ const TransactionModal = ({ onClose, onSaved, editing }) => {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 required
+                autoFocus
               />
+              <div className="quick-amount-row">
+                {[100, 250, 500, 1000, 2000, 5000].map((quick) => (
+                  <button
+                    key={quick}
+                    type="button"
+                    className="quick-amount-chip"
+                    onClick={() => setAmount(String(quick))}
+                  >
+                    +₹{quick}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="form-group">
               <label>Date</label>

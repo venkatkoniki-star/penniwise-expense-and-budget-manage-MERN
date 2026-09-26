@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, AlertTriangle, CheckCircle } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  AlertTriangle,
+  CheckCircle2,
+  ShieldCheck,
+  PiggyBank,
+  TrendingDown,
+  Activity,
+  Layers,
+  Sparkles,
+} from 'lucide-react';
 import axios from 'axios';
 import Layout from '../components/Layout';
 import BudgetModal from '../components/BudgetModal';
@@ -17,6 +28,7 @@ const Budgets = () => {
   const [showModal, setShowModal] = useState(false);
 
   const token = localStorage.getItem('token');
+  const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
 
   useEffect(() => {
     loadBudgets();
@@ -26,24 +38,24 @@ const Budgets = () => {
     setLoading(true);
     try {
       const res = await axios.get(`${API}/budgets?month=${month}&year=${year}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       setBudgets(res.data);
     } catch (err) {
-      console.log(err);
+      console.log('Error loading budgets:', err);
     }
     setLoading(false);
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this budget?')) return;
+    if (!window.confirm('Delete this budget cap?')) return;
     try {
       await axios.delete(`${API}/budgets/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       loadBudgets();
     } catch (err) {
-      console.log(err);
+      console.log('Error deleting budget:', err);
     }
   };
 
@@ -64,48 +76,112 @@ const Budgets = () => {
     }
   }
 
+  const remainingTotal = totalBudgeted - totalSpent;
+  const overallUtilization = totalBudgeted > 0 ? Math.min((totalSpent / totalBudgeted) * 100, 100).toFixed(0) : 0;
+
   return (
     <Layout>
+      {/* ── Page Header ── */}
       <div className="page-header">
         <div>
-          <div className="page-title">Budgets</div>
-          <div className="page-subtitle">Tactical allocation limits &amp; threshold guard</div>
+          <div className="page-title">Budget Guardrails</div>
+          <div className="page-subtitle">
+            {monthName} {year} — monthly spending limits &amp; threshold burn protection
+          </div>
         </div>
         <div className="header-actions">
           <MonthPicker month={month} year={year} onChange={handleMonthChange} />
-          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-            <Plus size={15} /> Set budget
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setShowModal(true)}
+            style={{ gap: 7, borderRadius: 10 }}
+          >
+            <Plus size={16} />
+            <span>Set New Budget</span>
           </button>
         </div>
       </div>
 
-      {budgets.length > 0 && (
-        <div className="budget-stats-grid">
-          <div style={{ flex: 1, padding: '14px 18px', background: 'var(--surface)', borderRadius: 10, border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', marginBottom: 4 }}>Total Allocated</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{formatCurrency(totalBudgeted)}</div>
+      {/* ── Budget Summary Telemetry Ribbon ── */}
+      <div className="budget-summary-ribbon">
+        <div className="budget-summary-card">
+          <div className="budget-summary-label">
+            <span className="budget-indicator allocated" /> Total Cap Allocated
           </div>
-          <div style={{ flex: 1, padding: '14px 18px', background: 'var(--surface)', borderRadius: 10, border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', marginBottom: 4 }}>Total Utilized</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: totalSpent > totalBudgeted ? 'var(--red)' : 'var(--text-primary)' }}>{formatCurrency(totalSpent)}</div>
+          <div className="budget-summary-value">{formatCurrency(totalBudgeted)}</div>
+          <div className="budget-summary-sub">Across {budgets.length} category caps</div>
+        </div>
+
+        <div className="budget-summary-card">
+          <div className="budget-summary-label">
+            <span className="budget-indicator spent" /> Total Utilized Spend
           </div>
-          <div style={{ flex: 1, padding: '14px 18px', background: overCount > 0 ? 'var(--red-light)' : 'var(--green-light)', borderRadius: 10, border: `1px solid ${overCount > 0 ? 'var(--red-border)' : 'var(--green-border)'}` }}>
-            <div style={{ fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', marginBottom: 4, color: overCount > 0 ? 'var(--red)' : 'var(--green)' }}>Status Guard</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.95rem', fontWeight: 700, color: overCount > 0 ? 'var(--red)' : 'var(--green)' }}>
-              {overCount > 0 ? <><AlertTriangle size={16} /> {overCount} over budget</> : <><CheckCircle size={16} /> All systems on track</>}
-            </div>
+          <div className="budget-summary-value" style={{ color: totalSpent > totalBudgeted ? 'var(--red)' : 'var(--text-primary)' }}>
+            {formatCurrency(totalSpent)}
+          </div>
+          <div className="budget-summary-sub">{overallUtilization}% of total capacity</div>
+        </div>
+
+        <div className="budget-summary-card">
+          <div className="budget-summary-label">
+            <span className="budget-indicator remaining" /> Remaining Headroom
+          </div>
+          <div className={`budget-summary-value ${remainingTotal >= 0 ? 'positive' : 'negative'}`}>
+            {remainingTotal < 0 ? '-' : ''}{formatCurrency(Math.abs(remainingTotal))}
+          </div>
+          <div className="budget-summary-sub">
+            {remainingTotal >= 0 ? 'unspent capital margin' : 'cashflow deficit'}
           </div>
         </div>
-      )}
 
-      <div className="card">
+        <div className="budget-summary-card">
+          <div className="budget-summary-label">System Guard Status</div>
+          <div className={`budget-status-pill ${overCount > 0 ? 'alert' : 'healthy'}`}>
+            {overCount > 0 ? (
+              <>
+                <AlertTriangle size={15} />
+                <span>{overCount} Limits Exceeded</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 size={15} />
+                <span>All Caps Normal</span>
+              </>
+            )}
+          </div>
+          <div className="budget-summary-sub">automated threshold scan</div>
+        </div>
+      </div>
+
+      {/* ── Main Budget Cards Section ── */}
+      <div className="budget-cards-section">
         {loading ? (
-          <div className="loading">Loading budgets...</div>
+          <div className="dashboard-loading-container" style={{ padding: '60px 0' }}>
+            <div className="telemetry-spinner" />
+            <div className="telemetry-loading-text">EVALUATING BUDGET THRESHOLDS...</div>
+          </div>
         ) : budgets.length === 0 ? (
-          <div className="empty-state"><p>No budget limits configured for this month.</p></div>
+          <div className="card empty-state" style={{ padding: '60px 20px', textAlign: 'center' }}>
+            <PiggyBank size={42} color="var(--text-muted)" />
+            <h3 style={{ marginTop: 14 }}>No Budget Guardrails Configured</h3>
+            <p style={{ maxWidth: 440, margin: '8px auto 20px', color: 'var(--text-secondary)' }}>
+              Setting category limits keeps your capital safe. Define monthly caps for dining, rent, cloud
+              infrastructure, and shopping to track real-time utilization.
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setShowModal(true)}
+              style={{ gap: 7 }}
+            >
+              <Plus size={16} />
+              <span>Create First Budget Cap</span>
+            </button>
+          </div>
         ) : (
-          <div>
-            {budgets.map(b => {
+          <div className="budget-cards-grid">
+            {budgets.map((b) => {
               const spent = parseFloat(b.spent) || 0;
               const limit = parseFloat(b.amount) || 0;
               const pct = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
@@ -113,31 +189,70 @@ const Budgets = () => {
               const remaining = limit - spent;
 
               return (
-                <div key={b.id} style={{ padding: '16px 0', borderBottom: '1px solid var(--border-light)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span className="cat-dot" style={{ background: b.category_color || 'var(--accent)' }} />
+                <div key={b.id} className={`budget-item-card ${over ? 'is-over' : ''}`}>
+                  {/* Card Top Row */}
+                  <div className="budget-item-top">
+                    <div className="budget-item-meta">
+                      <div className="budget-item-icon-box" style={{ background: `${b.category_color || 'var(--accent)'}18` }}>
+                        <span className="cat-dot" style={{ background: b.category_color || 'var(--accent)', width: 10, height: 10 }} />
                       </div>
                       <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{b.name}</div>
-                        <div style={{ fontSize: '0.72rem', color: over ? 'var(--red)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
-                          {over ? `⚠️ Over limit by ${formatCurrency(Math.abs(remaining))}` : `${formatCurrency(remaining)} remaining`}
-                        </div>
+                        <h3 className="budget-item-name">{b.name}</h3>
+                        <span className="budget-item-sub">Category Guardrail</span>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 700, fontFamily: 'var(--font-mono)', color: over ? 'var(--red)' : 'var(--text-primary)' }}>{formatCurrency(spent)}</div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>of {formatCurrency(limit)} ({pct.toFixed(0)}%)</div>
-                      </div>
-                      <button className="btn btn-danger btn-icon btn-sm" title="Delete budget" onClick={() => handleDelete(b.id)}>
+
+                    <div className="budget-item-actions">
+                      <span className={`budget-pct-chip ${over ? 'alert' : pct > 80 ? 'warn' : 'safe'}`}>
+                        {pct.toFixed(0)}%
+                      </span>
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-icon btn-sm"
+                        title="Delete budget limit"
+                        onClick={() => handleDelete(b.id)}
+                      >
                         <Trash2 size={13} />
                       </button>
                     </div>
                   </div>
-                  <div className="progress-bar" style={{ height: 7 }}>
-                    <div className="progress-fill" style={{ width: `${pct}%`, background: over ? 'var(--red)' : 'var(--accent)' }} />
+
+                  {/* Numbers Line */}
+                  <div className="budget-item-numbers">
+                    <div>
+                      <div className="budget-num-label">Current Spend</div>
+                      <div className="budget-num-val spent" style={{ color: over ? 'var(--red)' : 'var(--text-primary)' }}>
+                        {formatCurrency(spent)}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div className="budget-num-label">Monthly Limit</div>
+                      <div className="budget-num-val limit">{formatCurrency(limit)}</div>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="progress-bar" style={{ height: 8, margin: '14px 0 10px' }}>
+                    <div
+                      className="progress-fill"
+                      style={{
+                        width: `${pct}%`,
+                        background: over
+                          ? 'linear-gradient(90deg, #ff453a, #ff1a2b)'
+                          : pct > 80
+                          ? 'linear-gradient(90deg, #ff8a00, #ffbd2e)'
+                          : 'linear-gradient(90deg, #00ed64, #00d4ff)',
+                      }}
+                    />
+                  </div>
+
+                  {/* Card Footer status note */}
+                  <div className={`budget-item-foot ${over ? 'danger' : ''}`}>
+                    {over ? (
+                      <span>⚠️ Exceeded budget cap by {formatCurrency(Math.abs(remaining))}</span>
+                    ) : (
+                      <span>✓ {formatCurrency(remaining)} remaining headroom</span>
+                    )}
                   </div>
                 </div>
               );
@@ -146,8 +261,17 @@ const Budgets = () => {
         )}
       </div>
 
+      {/* ── Set Budget Modal ── */}
       {showModal && (
-        <BudgetModal month={month} year={year} onClose={() => setShowModal(false)} onSaved={() => { setShowModal(false); loadBudgets(); }} />
+        <BudgetModal
+          month={month}
+          year={year}
+          onClose={() => setShowModal(false)}
+          onSaved={() => {
+            setShowModal(false);
+            loadBudgets();
+          }}
+        />
       )}
     </Layout>
   );

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import ThemeSelector from './ThemeSelector';
+import AppLogo from './AppLogo';
 
 const Layout = ({ children }) => {
   const navigate = useNavigate();
@@ -45,11 +46,8 @@ const Layout = ({ children }) => {
           {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
 
-        <div className="mobile-header-brand" onClick={() => navigate('/dashboard')}>
-          <div className="logo-icon" style={{ width: 26, height: 26 }}>
-            <Wallet size={13} color="#fff" />
-          </div>
-          <span className="logo-text" style={{ fontSize: '0.95rem' }}>pennywise<i>.</i></span>
+        <div className="mobile-header-brand" style={{ cursor: 'pointer' }}>
+          <AppLogo size="sm" onClick={() => navigate('/dashboard')} />
         </div>
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -64,14 +62,8 @@ const Layout = ({ children }) => {
 
       {/* Sidebar (Desktop static left panel / Mobile sliding drawer) */}
       <aside className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
-        <div className="sidebar-logo">
-          <div className="logo-icon">
-            <Wallet size={15} color="#fff" />
-          </div>
-          <div>
-            <div className="logo-text">pennywise<i>.</i></div>
-            <div className="logo-sub">FINANCIAL OS · INR</div>
-          </div>
+        <div className="sidebar-logo" style={{ cursor: 'pointer' }}>
+          <AppLogo size="md" showSub={true} onClick={() => navigate('/dashboard')} />
           {/* Mobile close button inside drawer */}
           <button
             type="button"
@@ -117,15 +109,6 @@ const Layout = ({ children }) => {
             onClick={closeMobileMenu}
           >
             <FileBarChart className="nav-icon" size={16} /> Monthly Report
-          </NavLink>
-
-          <div className="nav-label" style={{ marginTop: 14 }}>Environments</div>
-          <NavLink
-            to="/landing"
-            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-            onClick={closeMobileMenu}
-          >
-            <Sparkles className="nav-icon" size={16} /> 3D Landing OS
           </NavLink>
         </nav>
 

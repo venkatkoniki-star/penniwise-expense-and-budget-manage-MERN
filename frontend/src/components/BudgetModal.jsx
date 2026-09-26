@@ -111,6 +111,18 @@ const BudgetModal = ({ onClose, onSaved, month, year }) => {
               onChange={(e) => setAmount(e.target.value)}
               required
             />
+            <div className="quick-amount-row">
+              {[2000, 5000, 10000, 25000, 50000].map((quick) => (
+                <button
+                  key={quick}
+                  type="button"
+                  className="quick-amount-chip"
+                  onClick={() => setAmount(String(quick))}
+                >
+                  ₹{quick.toLocaleString('en-IN')}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="modal-actions">

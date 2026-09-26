@@ -5,6 +5,7 @@ import axios from 'axios';
 import { useTheme } from '../context/ThemeContext';
 
 import ThemeSelector from '../components/ThemeSelector';
+import AppLogo from '../components/AppLogo';
 
 const API = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
@@ -50,13 +51,8 @@ const Signup = () => {
   return (
     <div className="auth-split-page">
       <div className="auth-split-left">
-        <div className="auth-split-brand">
-          <div className="auth-brand-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>
-            </svg>
-          </div>
-          <span className="auth-brand-name">pennywise<i>.</i></span>
+        <div className="auth-split-brand" style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
+          <AppLogo size="lg" showSub={true} />
         </div>
 
         <div className="auth-split-hero">
@@ -92,16 +88,8 @@ const Signup = () => {
       </div>
 
       <div className="auth-split-right" style={{ position: 'relative' }}>
-        {/* Floating Top Controls */}
+        {/* Floating Top Atmosphere Controls */}
         <div style={{ position: 'absolute', top: 20, right: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Link
-            to="/"
-            className="btn btn-secondary btn-sm"
-            style={{ fontSize: '0.75rem', gap: 5 }}
-            title="Return to 3D Landing Page"
-          >
-            <Sparkles size={13} /> 3D Landing
-          </Link>
           <ThemeSelector compact={true} placement="bottom" showLabel={false} />
         </div>
 
