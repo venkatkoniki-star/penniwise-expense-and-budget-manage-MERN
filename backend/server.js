@@ -56,7 +56,13 @@ app.use('/api/categories', require('./routes/categories'));
 app.use('/api/reports', require('./routes/reports'));
 
 // Health check
-app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));
+app.get('/api/health', (req, res) =>
+  res.json({
+    status: 'ok',
+    database: require('mongoose').connection.readyState === 1 ? 'connected' : 'disconnected',
+    timestamp: new Date(),
+  })
+);
 
 // 404 handler
 app.use((req, res) => res.status(404).json({ message: 'Route not found' }));
