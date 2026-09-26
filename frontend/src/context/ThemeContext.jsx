@@ -2,12 +2,20 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 
 export const THEMES = [
   {
+    id: 'comic',
+    name: 'Comic Book',
+    icon: 'Zap',
+    color: '#ff2a4b',
+    description: 'Pop art graphic novel, bold ink & 3D punch shadows',
+    badge: 'DEFAULT'
+  },
+  {
     id: 'dark',
     name: 'Tactical Dark',
     icon: 'Moon',
     color: '#ff4d00',
     description: 'Obsidian terminal & electric orange HUD',
-    badge: 'DEFAULT'
+    badge: 'OLED'
   },
   {
     id: 'light',
@@ -32,14 +40,6 @@ export const THEMES = [
     color: '#00e676',
     description: 'Deep emerald vault, mint cashflow & bullion gold',
     badge: 'EMERALD'
-  },
-  {
-    id: 'comic',
-    name: 'Comic Book',
-    icon: 'Zap',
-    color: '#ff2a4b',
-    description: 'Pop art graphic novel, bold ink & 3D punch shadows',
-    badge: 'POP ART'
   }
 ];
 
@@ -47,7 +47,12 @@ const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('theme') || 'dark';
+    // Default to 'comic' theme unless user explicitly changed it
+    const userSelected = localStorage.getItem('theme_user_selected');
+    if (!userSelected) {
+      return 'comic';
+    }
+    return localStorage.getItem('theme') || 'comic';
   });
 
   useEffect(() => {
@@ -62,12 +67,14 @@ export const ThemeProvider = ({ children }) => {
     setTheme((prev) => {
       const idx = THEMES.findIndex((t) => t.id === prev);
       const nextIdx = (idx + 1) % THEMES.length;
+      localStorage.setItem('theme_user_selected', 'true');
       return THEMES[nextIdx].id;
     });
   };
 
   const selectTheme = (themeId) => {
     if (THEMES.some((t) => t.id === themeId)) {
+      localStorage.setItem('theme_user_selected', 'true');
       setTheme(themeId);
     }
   };

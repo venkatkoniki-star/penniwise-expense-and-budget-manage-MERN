@@ -90,6 +90,14 @@ const Signup = () => {
       <div className="auth-split-right" style={{ position: 'relative' }}>
         {/* Floating Top Atmosphere Controls */}
         <div style={{ position: 'absolute', top: 20, right: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Link
+            to="/landing"
+            className="btn btn-secondary btn-sm"
+            style={{ fontSize: '0.75rem', gap: 5 }}
+            title="Experience the 3D Space Scene"
+          >
+            <Sparkles size={13} /> 3D Landing
+          </Link>
           <ThemeSelector compact={true} placement="bottom" showLabel={false} />
         </div>
 

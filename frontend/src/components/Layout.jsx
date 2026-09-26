@@ -110,6 +110,15 @@ const Layout = ({ children }) => {
           >
             <FileBarChart className="nav-icon" size={16} /> Monthly Report
           </NavLink>
+
+          <div className="nav-label" style={{ marginTop: 14 }}>Spatial 3D</div>
+          <NavLink
+            to="/landing"
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            onClick={closeMobileMenu}
+          >
+            <Sparkles className="nav-icon" size={16} /> 3D Landing Page
+          </NavLink>
         </nav>
 
         <div className="sidebar-footer">
